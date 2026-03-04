@@ -8,6 +8,7 @@ https://raw.githubusercontent.com/AAPVdev/scripts/refs/heads/main/LimbExtender.l
 https://raw.githubusercontent.com/SiriusSoftwareLtd/Rayfield/main/source.lua
 https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua
 https://raw.githubusercontent.com/Malwerot/BH4L.V2/refs/heads/main/Script.lua
+https://raw.githubusercontent.com/SiriusSoftwareLtd/Rayfield/refs/heads/main/icons.lua
 
 UI Libraries: * Kavo UI por xHeptc.
 
