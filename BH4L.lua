@@ -1,14 +1,3 @@
--- [ 1. SILENCIADOR DE LOGS ] - Coloque isso primeiro
-local oldWarn = warn
-warn = function(...)
-    local msg = tostring(...)
-    -- Bloqueia a mensagem chata do Sense e qualquer outra que você queira
-    if msg:find("Instance handler") or msg:find("already exists") then
-        return
-    end
-    oldWarn(...)
-end
-
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
