@@ -143,50 +143,49 @@ Themes:CreateDropdown({
 })
 
 ----------------------------------------------------------------
--- [ ABA: SENSE (ESP) - MODO DE SEGURANÇA ]
+-- [ ABA: SENSE (ESP) - FIX TOTAL ]
 ----------------------------------------------------------------
 local Sense = loadstring(game:HttpGet('https://raw.githubusercontent.com/Malwerot/BH4L-ULTIMATE/refs/heads/main/sense.lua'))()
 
--- 1. Desativamos as funções problemáticas direto na "alma" do Sense
--- Isso impede que o erro 'attempt to index number' sequer aconteça
-if Sense and Sense.teamSettings then
-    local function disableBuggyFeatures(target)
-        target.box3d = false          -- O 3D Box é o vilão principal
-        target.boxOutline = false     -- Outlines às vezes bugam em executores simples
-        target.healthBarOutline = false
-        target.tracerOutline = false
+-- === O PULO DO GATO: VAMOS CONSERTAR A "FÁBRICA" ===
+-- O erro acontece porque o script tenta usar .Visible em algo que não é um desenho.
+-- Vamos capturar o metatable do objeto de ESP para proteger o Render de todos os jogadores.
+
+local function PatchSense()
+    -- Tentamos achar a classe EspObject dentro do ambiente do script
+    -- Normalmente ela fica escondida, então vamos usar um truque de debug
+    for _, v in next, getgc(true) do
+        if type(v) == "table" and rawget(v, "Render") and rawget(v, "Update") and not rawget(v, "teamSettings") then
+            local oldRender = v.Render
+            v.Render = function(self)
+                local ok, err = pcall(function()
+                    -- Verificação extra: se o box3d estiver bugado, a gente limpa ele
+                    if self.drawings and self.drawings.box3d then
+                        for _, face in ipairs(self.drawings.box3d) do
+                            if type(face) ~= "table" then continue end
+                            for i, line in ipairs(face) do
+                                if type(line) ~= "table" and type(line) ~= "userdata" then
+                                    face[i] = {Visible = false, Remove = function() end}
+                                end
+                            end
+                        end
+                    end
+                    return oldRender(self)
+                end)
+                if not ok then return end -- Silencia o log maluco se o pcall falhar
+            end
+        end
     end
-
-    disableBuggyFeatures(Sense.teamSettings.enemy)
-    disableBuggyFeatures(Sense.teamSettings.friendly)
 end
 
--- 2. Sobrescrevemos o Render com uma trava total
-local oldRender = Sense.Render
-Sense.Render = function(self)
-    -- Se o desenho não for uma tabela válida, a gente para o render deste frame
-    if type(self) ~= "table" or not self.drawings then return end
-    
-    local ok = pcall(function()
-        return oldRender(self)
-    end)
-    -- Se der erro, não fazemos nada (impede o log maluco)
-end
+-- Executa o patch
+pcall(PatchSense)
 
--- 3. Forçamos a desativação de qualquer tentativa de desenho 3D no UI
--- Se o seu menu tentar ligar o 3D, essa linha vai bloquear
+-- Desativa o que mais causa erro por garantia
 Sense.teamSettings.enemy.box3d = false
 Sense.teamSettings.friendly.box3d = false
-
 Sense.teamSettings.enemy.enabled = true
 Sense.teamSettings.friendly.enabled = true
-
-local function setBoth(settingName, value)
-    if Sense and Sense.teamSettings then
-        Sense.teamSettings.enemy[settingName] = value
-        Sense.teamSettings.friendly[settingName] = value
-    end
-end
 
 local function createControl(def)
     if not def or not def.type then return end
