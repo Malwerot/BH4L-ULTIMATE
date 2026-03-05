@@ -277,7 +277,7 @@ for _, entry in ipairs(ui) do
     createControl(entry)
 end
 
-Sense.Load()
+-- Sense.Load()
 Rayfield:LoadConfiguration()
 
 local limbs = {}
