@@ -142,38 +142,44 @@ Themes:CreateDropdown({
     end,
 })
 
-local Sense = loadstring(game:HttpGet('https://raw.githubusercontent.com/Malwerot/BH4L-ULTIMATE/refs/heads/main/sense.lua'))()
-
 ----------------------------------------------------------------
 -- [ ABA: SENSE (ESP) ]
 ----------------------------------------------------------------
+-- 1. Primeiro, criamos um "filtro" para a biblioteca de desenho
+local oldDrawingNew = Drawing.new
+local function safeDrawing(class)
+    local success, drawing = pcall(function() return oldDrawingNew(class) end)
+    if success then
+        return drawing
+    else
+        -- Se falhar, retorna um objeto "fantasma" para não dar erro de .Visible
+        return {
+            Visible = false, Color = Color3.new(), Transparency = 1, 
+            Thickness = 1, From = Vector2.new(), To = Vector2.new(),
+            Remove = function() end, Destroy = function() end
+        }
+    end
+end
+
+-- 2. Importa o Sense
 local Sense = loadstring(game:HttpGet('https://raw.githubusercontent.com/Malwerot/BH4L-ULTIMATE/refs/heads/main/sense.lua'))()
 
--- === INÍCIO DO FIX ===
--- Proteção para evitar o erro "attempt to index number with 'Visible'"
-local originalRender = Sense.Render
-Sense.Render = function(self)
-    local success = pcall(function()
-        if self.drawings and self.drawings.box3d then
-            for i, face in ipairs(self.drawings.box3d) do
-                if type(face) == "table" then
-                    for i2, line in ipairs(face) do
-                        -- Se a linha virou um número, neutralizamos ela
-                        if type(line) ~= "table" and type(line) ~= "userdata" then
-                            face[i2] = { Visible = false, Remove = function() end }
-                        end
-                    end
-                end
-            end
+-- 3. FIX DA RAIZ: Força o Sense a usar desenhos seguros e protege o Render
+if Sense and Sense.Render then
+    local originalRender = Sense.Render
+    Sense.Render = function(self)
+        -- Proteção extra para garantir que 'self' e 'drawings' existem
+        if not self or type(self) ~= "table" then return end
+        
+        local ok, err = pcall(function()
+            return originalRender(self)
+        end)
+        
+        if not ok and _G.DebugSense then
+            warn("Erro no Render do Sense: " .. tostring(err))
         end
-        return originalRender(self)
-    end)
-    if not success then return end
+    end
 end
--- === FIM DO FIX ===
-
-Sense.teamSettings.enemy.enabled = true
-Sense.teamSettings.friendly.enabled = true
 
 Sense.teamSettings.enemy.enabled = true
 Sense.teamSettings.friendly.enabled = true
