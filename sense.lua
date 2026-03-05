@@ -389,31 +389,40 @@ function EspObject:Render()
 		arrowOutline.Transparency = options.offScreenArrowOutlineColor[2];
 	end
 
-	--local box3dEnabled = enabled and onScreen and options.box3d;
-	--for i = 1, #box3d do
-		    --local face = box3d[i];
-		--for i2 = 1, #face do
-			--local line = face[i2];
-		    --line.Visible = box3dEnabled;
-			--line.Color = parseColor(self, options.box3dColor[1]);
-			--line.Transparency = options.box3dColor[2];
-		--end
+local box3dEnabled = enabled and onScreen and options.box3d;
+	for i = 1, #box3d do
+		local face = box3d[i];
+		for i2 = 1, #face do
+			local line = face[i2];
+			
+			-- Protege a alteração das propriedades do Drawing contra bugs do executor
+			pcall(function()
+				line.Visible = box3dEnabled;
+				line.Color = parseColor(self, options.box3dColor[1]);
+				line.Transparency = options.box3dColor[2];
+			end)
+		end
 
-		--if box3dEnabled then
-			--local line1 = face[1];
-			--line1.From = corners.corners[i];
-			--line1.To = corners.corners[i == 4 and 1 or i+1];
+		if box3dEnabled then
+			local line1 = face[1];
+			pcall(function()
+				line1.From = corners.corners[i];
+				line1.To = corners.corners[i == 4 and 1 or i+1];
+			end)
 
-			--local line2 = face[2];
-			--line2.From = corners.corners[i == 4 and 1 or i+1];
-			--line2.To = corners.corners[i == 4 and 5 or i+5];
+			local line2 = face[2];
+			pcall(function()
+				line2.From = corners.corners[i == 4 and 1 or i+1];
+				line2.To = corners.corners[i == 4 and 5 or i+5];
+			end)
 
-			--local line3 = face[3];
-			--line3.From = corners.corners[i == 4 and 5 or i+5];
-			--line3.To = corners.corners[i == 4 and 8 or i+4];
-		--end
-	--end
---end
+			local line3 = face[3];
+			pcall(function()
+				line3.From = corners.corners[i == 4 and 5 or i+5];
+				line3.To = corners.corners[i == 4 and 8 or i+4];
+			end)
+		end
+	end
 
 -- cham object
 local ChamObject = {};
