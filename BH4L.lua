@@ -143,47 +143,40 @@ Themes:CreateDropdown({
 })
 
 ----------------------------------------------------------------
--- [ ABA: SENSE (ESP) - FIX TOTAL ]
+-- [ ABA: SENSE (ESP) - CARREGAMENTO MANUAL SEGURO ]
 ----------------------------------------------------------------
 local Sense = loadstring(game:HttpGet('https://raw.githubusercontent.com/Malwerot/BH4L-ULTIMATE/refs/heads/main/sense.lua'))()
 
--- === O PULO DO GATO: VAMOS CONSERTAR A "FÁBRICA" ===
--- O erro acontece porque o script tenta usar .Visible em algo que não é um desenho.
--- Vamos capturar o metatable do objeto de ESP para proteger o Render de todos os jogadores.
+-- 1. NÃO VAMOS USAR O SENSE.LOAD() ORIGINAL.
+-- Vamos criar nossa própria função de carregar que ignora os erros.
 
-local function PatchSense()
-    -- Tentamos achar a classe EspObject dentro do ambiente do script
-    -- Normalmente ela fica escondida, então vamos usar um truque de debug
-    for _, v in next, getgc(true) do
-        if type(v) == "table" and rawget(v, "Render") and rawget(v, "Update") and not rawget(v, "teamSettings") then
-            local oldRender = v.Render
-            v.Render = function(self)
-                local ok, err = pcall(function()
-                    -- Verificação extra: se o box3d estiver bugado, a gente limpa ele
-                    if self.drawings and self.drawings.box3d then
-                        for _, face in ipairs(self.drawings.box3d) do
-                            if type(face) ~= "table" then continue end
-                            for i, line in ipairs(face) do
-                                if type(line) ~= "table" and type(line) ~= "userdata" then
-                                    face[i] = {Visible = false, Remove = function() end}
-                                end
-                            end
-                        end
-                    end
-                    return oldRender(self)
-                end)
-                if not ok then return end -- Silencia o log maluco se o pcall falhar
-            end
+local function SafeLoad()
+    -- Desativa o Box 3D e Outlines que são a causa real do spam de logs
+    Sense.teamSettings.enemy.box3d = false
+    Sense.teamSettings.friendly.box3d = false
+    Sense.teamSettings.enemy.boxOutline = false
+    Sense.teamSettings.friendly.boxOutline = false
+    
+    -- Tenta iniciar o ESP de cada jogador individualmente com proteção
+    for _, player in ipairs(game:GetService("Players"):GetPlayers()) do
+        if player ~= game:GetService("Players").LocalPlayer then
+            pcall(function()
+                -- Adiciona o jogador ao cache do Sense manualmente
+                -- Se der erro aqui, o pcall abafa e não gera log
+                Sense.AddInstance(player, {enabled = true})
+            end)
         end
     end
+    
+    -- Conecta novos jogadores de forma segura
+    game:GetService("Players").PlayerAdded:Connect(function(player)
+        pcall(function()
+            Sense.AddInstance(player, {enabled = true})
+        end)
+    end)
 end
 
--- Executa o patch
-pcall(PatchSense)
-
--- Desativa o que mais causa erro por garantia
-Sense.teamSettings.enemy.box3d = false
-Sense.teamSettings.friendly.box3d = false
+-- 2. Configurações básicas
 Sense.teamSettings.enemy.enabled = true
 Sense.teamSettings.friendly.enabled = true
 
@@ -311,7 +304,7 @@ for _, entry in ipairs(ui) do
     createControl(entry)
 end
 
-Sense.Load()
+pcall(SafeLoad)
 Rayfield:LoadConfiguration()
 
 local limbs = {}
